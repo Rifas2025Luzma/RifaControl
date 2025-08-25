@@ -23,7 +23,7 @@ class AdminRaffleApp {
     this.participants = {};
     this.selectedNumber = null;
     this.pendingRegistrations = [];
-    this.ticketPrice = 10000; // Precio por boleto
+    this.ticketPrice = 10000; // Precio por boleto en pesos
     this.initializeApp();
     this.setupFirebaseListener();
   }
@@ -249,15 +249,15 @@ class AdminRaffleApp {
           <div class="stats-grid">
             <div class="stat-card">
               <span class="stat-label">Total Vendido:</span>
-              <span class="stat-value">$${stats.totalRevenue.toLocaleString()}</span>
+              <span class="stat-value">$ ${stats.totalRevenue.toLocaleString()}</span>
             </div>
             <div class="stat-card">
               <span class="stat-label">Total Pagos:</span>
-              <span class="stat-value">$${stats.totalPaid.toLocaleString()}</span>
+              <span class="stat-value">$ ${stats.totalPaid.toLocaleString()}</span>
             </div>
             <div class="stat-card">
               <span class="stat-label">Pendiente por Pagar:</span>
-              <span class="stat-value pending">$${stats.pendingPayment.toLocaleString()}</span>
+              <span class="stat-value pending">$ ${stats.pendingPayment.toLocaleString()}</span>
             </div>
             <div class="stat-card">
               <span class="stat-label">Números Vendidos:</span>
@@ -274,7 +274,6 @@ class AdminRaffleApp {
                 <th>Nequi</th>
                 <th>Otro</th>
                 <th>Pendiente</th>
-                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -353,11 +352,6 @@ class AdminRaffleApp {
             <input type="radio" name="payment-${number}" value="pendiente" 
                    ${data.paymentMethod === 'pendiente' ? 'checked' : ''} 
                    onchange="window.raffleApp.updatePayment('${number}', 'pendiente')">
-          </td>
-          <td>
-            <button class="button-small" onclick="window.raffleApp.editParticipant('${number}')">
-              Editar
-            </button>
           </td>
         </tr>
       `).join('');
