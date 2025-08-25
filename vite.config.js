@@ -1,17 +1,17 @@
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  base: '/Relojinteligente/',
+  root: './',
   build: {
-    outDir: 'docs',
-    assetsDir: 'assets',
     rollupOptions: {
-      output: {
-        manualChunks: undefined,
-        entryFileNames: 'assets/[name]-[hash].js',
-        chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]'
+      input: {
+        main: './index.html'
       }
-    }
+    },
+    outDir: 'dist'
+  },
+  server: {
+    port: 5173,
+    host: true
   }
 })

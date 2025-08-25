@@ -4,6 +4,9 @@
   --background-color: #f1faee;
   --text-color: #293241;
   --grid-gap: 8px;
+  --success-color: #28a745;
+  --warning-color: #ffc107;
+  --danger-color: #dc3545;
 }
 
 * {
@@ -51,33 +54,62 @@ body {
   margin-bottom: 2rem;
 }
 
-.promo-text {
-  text-align: center;
-  margin-bottom: 2rem;
-  padding: 1rem;
+/* Sección de progreso */
+.progress-section {
   background-color: white;
+  padding: 2rem;
   border-radius: 12px;
+  margin-bottom: 2rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
 }
 
-.promo-text h2 {
-  color: var(--primary-color);
-  font-size: 1.8rem;
-  margin-bottom: 1rem;
-}
-
-.promo-text ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.promo-text li {
-  margin: 0.8rem 0;
-  font-size: 1.1rem;
+.progress-section h2 {
   color: var(--secondary-color);
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
 }
 
+.progress-bar {
+  position: relative;
+  background-color: #e9ecef;
+  border-radius: 25px;
+  height: 30px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.progress-fill {
+  background: linear-gradient(90deg, var(--warning-color), var(--success-color));
+  height: 100%;
+  border-radius: 25px;
+  transition: width 0.5s ease;
+  position: relative;
+}
+
+.progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-weight: bold;
+  color: var(--secondary-color);
+  z-index: 2;
+  font-size: 1rem;
+}
+
+.available-numbers {
+  font-size: 1.2rem;
+  margin-top: 1rem;
+}
+
+.highlight-red {
+  color: var(--primary-color);
+  font-weight: bold;
+  font-size: 1.5rem;
+}
+
+/* Grid de números */
 .numbers-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
@@ -85,6 +117,37 @@ body {
   margin-bottom: 2rem;
 }
 
+.number-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  border: 2px solid var(--secondary-color);
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.number-cell:hover:not(.selected):not(.pending) {
+  background-color: #e9ecef;
+  transform: scale(1.05);
+}
+
+.number-cell.selected {
+  background-color: var(--primary-color);
+  color: white;
+  cursor: not-allowed;
+}
+
+.number-cell.pending {
+  background-color: var(--warning-color);
+  color: var(--text-color);
+  cursor: not-allowed;
+}
+
+/* Información de pago */
 .payment-info {
   text-align: center;
   margin: 2rem 0;
@@ -119,36 +182,7 @@ body {
   cursor: pointer;
 }
 
-.number-cell {
-  aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: white;
-  border: 2px solid var(--secondary-color);
-  border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.number-cell:hover:not(.selected):not(.pending) {
-  background-color: #e9ecef;
-  transform: scale(1.05);
-}
-
-.number-cell.selected {
-  background-color: var(--primary-color);
-  color: white;
-  cursor: not-allowed;
-}
-
-.number-cell.pending {
-  background-color: #ffd700;
-  color: var(--text-color);
-  cursor: not-allowed;
-}
-
+/* Modal */
 .modal {
   display: none;
   position: fixed;
@@ -159,6 +193,7 @@ body {
   background-color: rgba(0, 0, 0, 0.5);
   align-items: center;
   justify-content: center;
+  z-index: 1000;
 }
 
 .modal.active {
@@ -183,13 +218,16 @@ body {
   font-weight: bold;
 }
 
-.form-group input {
+.form-group input,
+.form-group select {
   width: 100%;
   padding: 0.5rem;
   border: 1px solid #ddd;
   border-radius: 4px;
+  font-size: 1rem;
 }
 
+/* Botones */
 .button {
   background-color: var(--primary-color);
   color: white;
@@ -199,6 +237,7 @@ body {
   cursor: pointer;
   font-weight: bold;
   transition: background-color 0.3s ease;
+  font-size: 1rem;
 }
 
 .button:hover {
@@ -216,30 +255,62 @@ body {
   font-size: 1.1rem;
 }
 
-.pending-registrations {
-  margin-top: 2rem;
-  padding: 1rem;
-  background-color: #fff3cd;
-  border-radius: 8px;
-}
-
-.pending-registrations h3 {
-  color: var(--secondary-color);
-  margin-bottom: 1rem;
-}
-
+/* Lista de participantes */
 .participants-list {
   background-color: white;
   padding: 2rem;
   border-radius: 12px;
   margin-top: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .participants-list h2 {
   color: var(--secondary-color);
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 1.8rem;
 }
 
+.participants-list h3 {
+  color: var(--secondary-color);
+  margin: 2rem 0 1rem 0;
+  font-size: 1.4rem;
+}
+
+/* Grid de estadísticas */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background-color: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+  border-left: 4px solid var(--primary-color);
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--secondary-color);
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+.stat-value.pending {
+  color: var(--danger-color);
+}
+
+/* Tabla de participantes */
 .participants-table {
   width: 100%;
   border-collapse: collapse;
@@ -256,8 +327,68 @@ body {
 .participants-table th {
   background-color: #f8f9fa;
   font-weight: bold;
+  color: var(--secondary-color);
 }
 
+.participants-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* Radio buttons y checkboxes */
+.participants-table input[type="radio"],
+.participants-table input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+  transform: scale(1.2);
+}
+
+.participants-table-summary {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 2rem;
+}
+
+.participants-table-summary th,
+.participants-table-summary td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.participants-table-summary th {
+  background-color: #f8f9fa;
+  font-weight: bold;
+  color: var(--secondary-color);
+}
+
+.participants-table-summary tr:hover {
+  background-color: #f8f9fa;
+}
+
+.participants-table-summary input[type="radio"] {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+  transform: scale(1.2);
+}
+
+/* Registros pendientes */
+.pending-registrations {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background-color: #fff3cd;
+  border-radius: 8px;
+  border-left: 4px solid var(--warning-color);
+}
+
+.pending-registrations h3 {
+  color: var(--secondary-color);
+  margin-bottom: 1rem;
+  font-size: 1.3rem;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
   .container {
     padding: 1rem;
@@ -274,5 +405,32 @@ body {
   .numbers-grid {
     grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
     gap: 6px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .participants-table {
+    font-size: 0.9rem;
+  }
+
+  .participants-table th,
+  .participants-table td {
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .progress-text {
+    font-size: 0.9rem;
+  }
+
+  .stat-value {
+    font-size: 1.2rem;
+  }
+
+  .participants-table {
+    font-size: 0.8rem;
   }
 }
