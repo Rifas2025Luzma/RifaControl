@@ -86,9 +86,17 @@ class AdminRaffleApp {
     const participants = Object.values(this.participants);
     const totalSold = participants.length;
     const totalRevenue = totalSold * this.ticketPrice;
-    const paidParticipants = participants.filter(p => p.paid).length;
-    const totalPaid = paidParticipants * this.ticketPrice;
-    const pendingPayment = totalRevenue - totalPaid;
+    
+    // Contar por método de pago
+    const nequiCount = participants.filter(p => p.paymentMethod === 'nequi').length;
+    const efectivoCount = participants.filter(p => p.paymentMethod === 'efectivo').length;
+    const pendienteCount = participants.filter(p => p.paymentMethod === 'pendiente').length;
+    
+    const nequiTotal = nequiCount * this.ticketPrice;
+    const efectivoTotal = efectivoCount * this.ticketPrice;
+    const pendienteTotal = pendienteCount * this.ticketPrice;
+    
+    const totalPaid = nequiTotal + efectivoTotal;
     const availableNumbers = 100 - totalSold;
     const soldPercentage = Math.round((totalSold / 100) * 100);
 
@@ -96,10 +104,15 @@ class AdminRaffleApp {
       totalSold,
       totalRevenue,
       totalPaid,
-      pendingPayment,
+      pendingPayment: pendienteTotal,
       availableNumbers,
       soldPercentage,
-      paidParticipants
+      nequiCount,
+      efectivoCount,
+      pendienteCount,
+      nequiTotal,
+      efectivoTotal,
+      pendienteTotal
     };
   }
 
@@ -235,7 +248,7 @@ class AdminRaffleApp {
                 <select id="paymentMethod" required>
                   <option value="pendiente">Pendiente</option>
                   <option value="nequi">Nequi</option>
-                  <option value="otro">Otro</option>
+                  <option value="efectivo">Efectivo</option>
                 </select>
               </div>
               <button type="submit" class="button">Agregar</button>
@@ -252,32 +265,69 @@ class AdminRaffleApp {
               <span class="stat-value">$ ${stats.totalRevenue.toLocaleString()}</span>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Total Pagos:</span>
-              <span class="stat-value">$ ${stats.totalPaid.toLocaleString()}</span>
+              <span class="stat-label">Total Nequi:</span>
+              <span class="stat-value">$ ${stats.nequiTotal.toLocaleString()}</span>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Pendiente por Pagar:</span>
-              <span class="stat-value pending">$ ${stats.pendingPayment.toLocaleString()}</span>
+              <span class="stat-label">Total Efectivo:</span>
+              <span class="stat-value">$ ${stats.efectivoTotal.toLocaleString()}</span>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Números Vendidos:</span>
-              <span class="stat-value">${stats.totalSold}</span>
+              <span class="stat-label">Pendiente:</span>
+              <span class="stat-value pending">$ ${stats.pendienteTotal.toLocaleString()}</span>
             </div>
           </div>
 
-          <table class="participants-table">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-label">Pagos Nequi:</span>
+              <span class="stat-value">${stats.nequiCount}</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Pagos Efectivo:</span>
+              <span class="stat-value">${stats.efectivoCount}</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Sin Pagar:</span>
+              <span class="stat-value pending">${stats.pendienteCount}</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Total Pagado:</span>
+              <span class="stat-value">$ ${stats.totalPaid.toLocaleString()}</span>
+            </div>
+          </div>
+
+          <h3>Resumen de Participantes</h3>
+          <table class="participants-table-summary">
             <thead>
               <tr>
                 <th>Número</th>
                 <th>Nombre</th>
                 <th>Teléfono</th>
                 <th>Nequi</th>
-                <th>Otro</th>
+                <th>Efectivo</th>
                 <th>Pendiente</th>
               </tr>
             </thead>
             <tbody>
-              ${this.generateParticipantsList()}
+              ${this.generateParticipantsListSummary()}
+            </tbody>
+          </table>
+
+          <h3>Control de Pagos - Datos Completos</h3>
+          <table class="participants-table">
+            <thead>
+              <tr>
+                <th>Número</th>
+                <th>Nombre Completo</th>
+                <th>Teléfono Completo</th>
+                <th>Nequi</th>
+                <th>Efectivo</th>
+                <th>Pendiente</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${this.generateCompleteParticipantsList()}
             </tbody>
           </table>
           
@@ -336,17 +386,17 @@ class AdminRaffleApp {
       .map(([number, data]) => `
         <tr>
           <td>${number}</td>
-          <td>${data.name}</td>
-          <td>${data.phone}</td>
+          <td>${this.maskName(data.name)}</td>
+          <td>${this.maskPhone(data.phone)}</td>
           <td>
             <input type="radio" name="payment-${number}" value="nequi" 
                    ${data.paymentMethod === 'nequi' ? 'checked' : ''} 
                    onchange="window.raffleApp.updatePayment('${number}', 'nequi')">
           </td>
           <td>
-            <input type="radio" name="payment-${number}" value="otro" 
-                   ${data.paymentMethod === 'otro' ? 'checked' : ''} 
-                   onchange="window.raffleApp.updatePayment('${number}', 'otro')">
+            <input type="radio" name="payment-${number}" value="efectivo" 
+                   ${data.paymentMethod === 'efectivo' ? 'checked' : ''} 
+                   onchange="window.raffleApp.updatePayment('${number}', 'efectivo')">
           </td>
           <td>
             <input type="radio" name="payment-${number}" value="pendiente" 
@@ -357,8 +407,75 @@ class AdminRaffleApp {
       `).join('');
   }
 
+  generateParticipantsListSummary() {
+    return Object.entries(this.participants)
+      .sort(([a], [b]) => parseInt(a) - parseInt(b))
+      .map(([number, data]) => `
+        <tr>
+          <td>${number}</td>
+          <td>${this.maskName(data.name)}</td>
+          <td>${this.maskPhone(data.phone)}</td>
+          <td>
+            <input type="radio" name="payment-${number}" value="nequi" 
+                   ${data.paymentMethod === 'nequi' ? 'checked' : ''} 
+                   onchange="window.raffleApp.updatePayment('${number}', 'nequi')">
+          </td>
+          <td>
+            <input type="radio" name="payment-${number}" value="efectivo" 
+                   ${data.paymentMethod === 'efectivo' ? 'checked' : ''} 
+                   onchange="window.raffleApp.updatePayment('${number}', 'efectivo')">
+          </td>
+          <td>
+            <input type="radio" name="payment-${number}" value="pendiente" 
+                   ${data.paymentMethod === 'pendiente' ? 'checked' : ''} 
+                   onchange="window.raffleApp.updatePayment('${number}', 'pendiente')">
+          </td>
+        </tr>
+      `).join('');
+  }
+
+  generateCompleteParticipantsList() {
+    return Object.entries(this.participants)
+      .sort(([a], [b]) => parseInt(a) - parseInt(b))
+      .map(([number, data]) => `
+        <tr>
+          <td>${number}</td>
+          <td>${data.name}</td>
+          <td>${data.phone}</td>
+          <td>
+            <input type="checkbox" ${data.paymentMethod === 'nequi' ? 'checked' : ''} 
+                   onchange="window.raffleApp.updatePaymentCheckbox('${number}', 'nequi', this.checked)">
+          </td>
+          <td>
+            <input type="checkbox" ${data.paymentMethod === 'efectivo' ? 'checked' : ''} 
+                   onchange="window.raffleApp.updatePaymentCheckbox('${number}', 'efectivo', this.checked)">
+          </td>
+          <td>
+            <input type="checkbox" ${data.paymentMethod === 'pendiente' ? 'checked' : ''} 
+                   onchange="window.raffleApp.updatePaymentCheckbox('${number}', 'pendiente', this.checked)">
+          </td>
+        </tr>
+      `).join('');
+  }
+
   async updatePayment(number, paymentMethod) {
     await this.updatePaymentStatus(number, paymentMethod);
+  }
+
+  async updatePaymentCheckbox(number, paymentMethod, isChecked) {
+    if (isChecked) {
+      // Si se marca un checkbox, desmarcar los otros
+      const checkboxes = document.querySelectorAll(`input[onchange*="'${number}'"]`);
+      checkboxes.forEach(cb => {
+        if (!cb.onchange.toString().includes(`'${paymentMethod}'`)) {
+          cb.checked = false;
+        }
+      });
+      await this.updatePaymentStatus(number, paymentMethod);
+    } else {
+      // Si se desmarca, poner como pendiente
+      await this.updatePaymentStatus(number, 'pendiente');
+    }
   }
 
   editParticipant(number) {
