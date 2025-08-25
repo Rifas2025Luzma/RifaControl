@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  base: '/RifaControl/',
+  base: '/Relojinteligente/',
   build: {
     outDir: 'docs',
     assetsDir: 'assets',

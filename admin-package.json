@@ -1,0 +1,17 @@
+{
+  "name": "admin-rifa-millon",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --config admin-vite.config.js",
+    "build": "vite build --config admin-vite.config.js",
+    "preview": "vite preview --config admin-vite.config.js"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "firebase": "^10.8.0"
+  }
+}

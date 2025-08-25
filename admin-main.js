@@ -1,6 +1,6 @@
-import './style.css';
+import './admin-style.css';
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, set, onValue } from "firebase/database";
+import { getDatabase, ref, set, onValue, update } from "firebase/database";
 
 // Configuración de Firebase
 const firebaseConfig = {
@@ -18,11 +18,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-class RaffleApp {
+class AdminRaffleApp {
   constructor() {
     this.participants = {};
     this.selectedNumber = null;
     this.pendingRegistrations = [];
+    this.ticketPrice = 10000; // Precio por boleto
     this.initializeApp();
     this.setupFirebaseListener();
   }
@@ -51,32 +52,55 @@ class RaffleApp {
     }
   }
 
-  maskName(fullName) {
-    const names = fullName.trim().split(' ');
-    if (names.length === 1) {
-      return names[0];
-    }
-    const firstName = names[0];
-    const secondInitial = names[1] ? names[1][0] + '.' : '';
-    return `${firstName} ${secondInitial}${'*'.repeat(5)}`;
-  }
-
-  maskPhone(phone) {
-    return phone.substring(0, 5) + '*'.repeat(Math.max(0, phone.length - 5));
-  }
-
-  async saveParticipant(number, name, phone) {
+  async saveParticipant(number, name, phone, paymentMethod = 'pendiente') {
     try {
       await set(ref(database, `rifa/${number}`), {
         name: name,
         phone: phone,
-        timestamp: Date.now()
+        paymentMethod: paymentMethod,
+        timestamp: Date.now(),
+        paid: paymentMethod !== 'pendiente'
       });
       return true;
     } catch (error) {
       console.error("Error guardando participante:", error);
       return false;
     }
+  }
+
+  async updatePaymentStatus(number, paymentMethod) {
+    try {
+      await update(ref(database, `rifa/${number}`), {
+        paymentMethod: paymentMethod,
+        paid: paymentMethod !== 'pendiente',
+        paymentTimestamp: Date.now()
+      });
+      return true;
+    } catch (error) {
+      console.error("Error actualizando pago:", error);
+      return false;
+    }
+  }
+
+  calculateStats() {
+    const participants = Object.values(this.participants);
+    const totalSold = participants.length;
+    const totalRevenue = totalSold * this.ticketPrice;
+    const paidParticipants = participants.filter(p => p.paid).length;
+    const totalPaid = paidParticipants * this.ticketPrice;
+    const pendingPayment = totalRevenue - totalPaid;
+    const availableNumbers = 100 - totalSold;
+    const soldPercentage = Math.round((totalSold / 100) * 100);
+
+    return {
+      totalSold,
+      totalRevenue,
+      totalPaid,
+      pendingPayment,
+      availableNumbers,
+      soldPercentage,
+      paidParticipants
+    };
   }
 
   async confirmPendingRegistrations() {
@@ -94,7 +118,8 @@ class RaffleApp {
         const success = await this.saveParticipant(
           registration.number,
           registration.name,
-          registration.phone
+          registration.phone,
+          registration.paymentMethod || 'pendiente'
         );
 
         if (success) {
@@ -108,7 +133,6 @@ class RaffleApp {
       }
     }
 
-    // Limpiar registros pendientes solo después de guardar
     this.pendingRegistrations = failedRegistrations.map(number => 
       this.pendingRegistrations.find(reg => reg.number === number)
     );
@@ -121,7 +145,6 @@ class RaffleApp {
       alert(`Números registrados exitosamente: ${successfulRegistrations.join(', ')}`);
     }
 
-    // Restablecer el estado del botón y renderizar
     if (button) {
       button.disabled = false;
       button.textContent = 'Confirmar Registros';
@@ -132,7 +155,7 @@ class RaffleApp {
     this.setupEventListeners();
   }
 
-  addPendingRegistration(number, name, phone) {
+  addPendingRegistration(number, name, phone, paymentMethod) {
     if (!name.trim() || !phone.trim()) {
       alert('Por favor complete todos los campos');
       return;
@@ -152,6 +175,7 @@ class RaffleApp {
       number,
       name: name.trim(),
       phone: phone.trim(),
+      paymentMethod: paymentMethod || 'pendiente',
       timestamp: Date.now()
     });
 
@@ -163,6 +187,8 @@ class RaffleApp {
     const appElement = document.querySelector('#app');
     if (!appElement) return;
 
+    const stats = this.calculateStats();
+
     appElement.innerHTML = `
       <div class="container">
         <header class="header">
@@ -172,6 +198,17 @@ class RaffleApp {
                alt="Dinero" 
                class="smartwatch-image">
         </header>
+
+        <div class="progress-section">
+          <h2>Progreso de la Rifa</h2>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${stats.soldPercentage}%"></div>
+            <span class="progress-text">${stats.totalSold} de 100 números vendidos (${stats.soldPercentage}%)</span>
+          </div>
+          <div class="available-numbers">
+            <span>Números Disponibles: <strong class="highlight-red">${stats.availableNumbers}</strong></span>
+          </div>
+        </div>
         
         <div class="numbers-grid">
           ${this.generateNumbersGrid()}
@@ -193,6 +230,14 @@ class RaffleApp {
                 <label for="phone">Teléfono:</label>
                 <input type="tel" id="phone" required>
               </div>
+              <div class="form-group">
+                <label for="paymentMethod">Método de Pago:</label>
+                <select id="paymentMethod" required>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="nequi">Nequi</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
               <button type="submit" class="button">Agregar</button>
             </form>
           </div>
@@ -200,12 +245,36 @@ class RaffleApp {
 
         <div class="participants-list">
           <h2>Números Registrados</h2>
+          
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-label">Total Vendido:</span>
+              <span class="stat-value">$${stats.totalRevenue.toLocaleString()}</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Total Pagos:</span>
+              <span class="stat-value">$${stats.totalPaid.toLocaleString()}</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Pendiente por Pagar:</span>
+              <span class="stat-value pending">$${stats.pendingPayment.toLocaleString()}</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Números Vendidos:</span>
+              <span class="stat-value">${stats.totalSold}</span>
+            </div>
+          </div>
+
           <table class="participants-table">
             <thead>
               <tr>
                 <th>Número</th>
                 <th>Nombre</th>
                 <th>Teléfono</th>
+                <th>Nequi</th>
+                <th>Otro</th>
+                <th>Pendiente</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -222,14 +291,16 @@ class RaffleApp {
                     <th>Número</th>
                     <th>Nombre</th>
                     <th>Teléfono</th>
+                    <th>Método de Pago</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${this.pendingRegistrations.map(reg => `
                     <tr>
                       <td>${reg.number}</td>
-                      <td>${this.maskName(reg.name)}</td>
-                      <td>${this.maskPhone(reg.phone)}</td>
+                      <td>${reg.name}</td>
+                      <td>${reg.phone}</td>
+                      <td>${reg.paymentMethod}</td>
                     </tr>
                   `).join('')}
                 </tbody>
@@ -266,13 +337,64 @@ class RaffleApp {
       .map(([number, data]) => `
         <tr>
           <td>${number}</td>
-          <td>${this.maskName(data.name)}</td>
-          <td>${this.maskPhone(data.phone)}</td>
+          <td>${data.name}</td>
+          <td>${data.phone}</td>
+          <td>
+            <input type="radio" name="payment-${number}" value="nequi" 
+                   ${data.paymentMethod === 'nequi' ? 'checked' : ''} 
+                   onchange="window.raffleApp.updatePayment('${number}', 'nequi')">
+          </td>
+          <td>
+            <input type="radio" name="payment-${number}" value="otro" 
+                   ${data.paymentMethod === 'otro' ? 'checked' : ''} 
+                   onchange="window.raffleApp.updatePayment('${number}', 'otro')">
+          </td>
+          <td>
+            <input type="radio" name="payment-${number}" value="pendiente" 
+                   ${data.paymentMethod === 'pendiente' ? 'checked' : ''} 
+                   onchange="window.raffleApp.updatePayment('${number}', 'pendiente')">
+          </td>
+          <td>
+            <button class="button-small" onclick="window.raffleApp.editParticipant('${number}')">
+              Editar
+            </button>
+          </td>
         </tr>
       `).join('');
   }
 
+  async updatePayment(number, paymentMethod) {
+    await this.updatePaymentStatus(number, paymentMethod);
+  }
+
+  editParticipant(number) {
+    const participant = this.participants[number];
+    if (participant) {
+      const newName = prompt('Nuevo nombre:', participant.name);
+      const newPhone = prompt('Nuevo teléfono:', participant.phone);
+      
+      if (newName && newPhone) {
+        this.updateParticipant(number, newName, newPhone);
+      }
+    }
+  }
+
+  async updateParticipant(number, name, phone) {
+    try {
+      await update(ref(database, `rifa/${number}`), {
+        name: name,
+        phone: phone,
+        updateTimestamp: Date.now()
+      });
+    } catch (error) {
+      console.error("Error actualizando participante:", error);
+    }
+  }
+
   setupEventListeners() {
+    // Hacer la instancia disponible globalmente para los eventos inline
+    window.raffleApp = this;
+
     // Configurar el evento de copiar número
     const copyNumberElement = document.querySelector('.copy-number');
     if (copyNumberElement) {
@@ -317,9 +439,15 @@ class RaffleApp {
         e.preventDefault();
         const nameInput = document.querySelector('#name');
         const phoneInput = document.querySelector('#phone');
+        const paymentMethodInput = document.querySelector('#paymentMethod');
         
-        if (nameInput && phoneInput) {
-          this.addPendingRegistration(this.selectedNumber, nameInput.value, phoneInput.value);
+        if (nameInput && phoneInput && paymentMethodInput) {
+          this.addPendingRegistration(
+            this.selectedNumber, 
+            nameInput.value, 
+            phoneInput.value,
+            paymentMethodInput.value
+          );
           if (modal) modal.classList.remove('active');
           form.reset();
         }
@@ -338,4 +466,4 @@ class RaffleApp {
 }
 
 // Inicializar la aplicación
-new RaffleApp();
+new AdminRaffleApp();
